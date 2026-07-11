@@ -1,0 +1,80 @@
+---
+- name: Настройка Bastion (копирование ключа и конфигурация SSH)
+  hosts: bastion
+  become: yes
+  tasks:
+    - name: Копирование SSH-ключа на bastion
+      copy:
+        src: ~/.ssh/id_ed25519
+        dest: /home/ubuntu/.ssh/id_ed25519
+        owner: ubuntu
+        group: ubuntu
+        mode: '0600'
+
+    - name: Настройка SSH-клиента на bastion (без проверок)
+      blockinfile:
+        path: /home/ubuntu/.ssh/config
+        create: yes
+        block: |
+          Host *
+              StrictHostKeyChecking no
+              UserKnownHostsFile=/dev/null
+        owner: ubuntu
+        group: ubuntu
+
+- name: Установка Docker на все серверы
+  hosts: all
+  become: yes
+  roles:
+    - docker
+
+- name: Установка Zabbix Agent на все серверы
+  hosts: all
+  become: yes
+  roles:
+    - zabbix-agent
+
+- name: Настройка Web-серверов
+  hosts: webservers
+  become: yes
+  roles:
+    - nginx-docker
+    - filebeat-docker
+  post_tasks:
+    - name: Проверить, что Nginx отвечает на порту 80
+      uri:
+        url: http://localhost:80
+        status_code: 200
+      register: nginx_check
+      retries: 10
+      delay: 5
+      until: nginx_check.status == 200
+
+- name: Настройка Zabbix Server
+  hosts: zabbix_server
+  become: yes
+  roles:
+    - zabbix-docker
+
+- name: Настройка Elasticsearch
+  hosts: elasticsearch
+  become: yes
+  roles:
+    - elk-docker
+
+- name: Настройка Kibana
+  hosts: kibana
+  become: yes
+  roles:
+    - elk-docker
+
+- name: Регистрация хостов в Zabbix
+  hosts: all
+  become: no
+  pre_tasks:
+    - name: Дать Zabbix API время на полную инициализацию
+      pause:
+        seconds: 30
+      run_once: true
+  roles:
+    - zabbix-register

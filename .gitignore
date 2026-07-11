@@ -1,0 +1,9 @@
+*.json
+terraform.tfvars
+.terraform/
+inventory.ini
+*.retry
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+*.tfstate*

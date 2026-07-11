@@ -1,0 +1,18 @@
+
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/nginx/access.log
+  fields:
+    type: nginx_access
+
+- type: log
+  enabled: true
+  paths:
+    - /var/log/nginx/error.log
+  fields:
+    type: nginx_error
+
+output.elasticsearch:
+  hosts: ["http://elastic.ru-central1.internal:9200"]

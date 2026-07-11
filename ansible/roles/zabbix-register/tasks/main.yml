@@ -1,0 +1,49 @@
+---
+- name: Установить python3-pip на bastion
+  apt:
+    name: python3-pip
+    state: present
+    update_cache: yes
+  delegate_to: bastion.ru-central1.internal
+  run_once: true
+  become: yes
+
+- name: Установить zabbix-api на bastion
+  pip:
+    name: zabbix-api
+    executable: pip3
+  delegate_to: bastion.ru-central1.internal
+  run_once: true
+  become: yes
+
+- name: Создать группу хостов в Zabbix
+  community.zabbix.zabbix_group:
+    server_url: "http://zabbix.ru-central1.internal:8080"
+    login_user: "{{ zabbix_api_user }}"
+    login_password: "{{ zabbix_api_password }}"
+    state: present
+    host_groups:
+      - "Linux servers"
+  delegate_to: bastion.ru-central1.internal
+  run_once: true
+
+- name: Добавить хост в Zabbix через API
+  community.zabbix.zabbix_host:
+    server_url: "http://zabbix.ru-central1.internal:8080"
+    login_user: "{{ zabbix_api_user }}"
+    login_password: "{{ zabbix_api_password }}"
+    host_name: "{{ inventory_hostname }}"
+    host_groups:
+      - "Linux servers"
+    interfaces:
+      - type: 1
+        main: 1
+        useip: 1
+        ip: "{{ ansible_default_ipv4.address }}"
+        dns: ""
+        port: "10050"
+    link_templates:
+      - "Linux by Zabbix agent"
+    state: present
+  delegate_to: bastion.ru-central1.internal
+  throttle: 1

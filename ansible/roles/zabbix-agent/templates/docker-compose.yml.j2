@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  zabbix-agent:
+    image: zabbix/zabbix-agent:alpine-6.0-latest
+    restart: unless-stopped
+    environment:
+      ZBX_SERVER_HOST: "{{ 'zabbix.ru-central1.internal,172.16.0.0/12' if inventory_hostname in groups['zabbix_server'] else 'zabbix.ru-central1.internal' }}"
+      ZBX_ACTIVE_ALLOW: "{{ 'false' if inventory_hostname in groups['zabbix_server'] else 'true' }}"
+      ZBX_HOSTNAME: "{{ inventory_hostname }}"
+    network_mode: "host"

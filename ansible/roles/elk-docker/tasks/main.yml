@@ -1,0 +1,24 @@
+
+---
+- name: Создание директории для ELK
+  file:
+    path: /opt/elk
+    state: directory
+    mode: '0755'
+
+- name: Копирование docker-compose для Elasticsearch
+  template:
+    src: elasticsearch.yml.j2
+    dest: /opt/elk/docker-compose.yml
+  when: "'elasticsearch' in group_names"
+
+- name: Копирование docker-compose для Kibana
+  template:
+    src: kibana.yml.j2
+    dest: /opt/elk/docker-compose.yml
+  when: "'kibana' in group_names"
+
+- name: Запуск контейнера
+  docker_compose:
+    project_src: /opt/elk
+    state: present

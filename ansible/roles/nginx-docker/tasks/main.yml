@@ -1,0 +1,31 @@
+- name: Создание директории для сайта
+  file:
+    path: /opt/nginx/html
+    state: directory
+    mode: '0755'
+
+- name: Создание директории для логов nginx
+  file:
+    path: /opt/nginx/logs
+    state: directory
+    mode: '0755'
+
+- name: Копирование index.html
+  template:
+    src: index.html.j2
+    dest: /opt/nginx/html/index.html
+
+- name: Запуск Nginx контейнера
+  docker_container:
+    name: nginx
+    image: nginx:alpine
+    state: started
+    restart_policy: always
+    ports:
+      - "80:80"
+    volumes:
+      - /opt/nginx/html:/usr/share/nginx/html:ro
+      - /opt/nginx/logs:/var/log/nginx
+    command: >
+      /bin/sh -c "rm -f /var/log/nginx/access.log /var/log/nginx/error.log &&
+      nginx -g 'daemon off;'"

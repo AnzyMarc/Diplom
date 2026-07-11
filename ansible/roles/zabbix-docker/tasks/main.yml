@@ -1,0 +1,57 @@
+
+---
+- name: Создание директории для Zabbix
+  file:
+    path: /opt/zabbix
+    state: directory
+    mode: '0755'
+
+- name: Настройка зеркала Docker Hub
+  copy:
+    content: |
+      {
+        "registry-mirrors": ["https://mirror.gcr.io"]
+      }
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Перезапуск Docker для применения зеркала
+  systemd:
+    name: docker
+    state: restarted
+
+- name: Копирование docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: /opt/zabbix/docker-compose.yml
+
+- name: Предварительная загрузка образов
+  docker_image:
+    name: "{{ item }}"
+    source: pull
+    force_source: yes
+    state: present
+  loop:
+    - postgres:14-alpine
+    - zabbix/zabbix-server-pgsql:alpine-6.0-latest
+    - zabbix/zabbix-web-nginx-pgsql:alpine-6.0-latest
+  retries: 3
+  delay: 10
+  register: image_pull
+  until: image_pull is success
+
+- name: Запуск Zabbix через Docker Compose
+  docker_compose:
+    project_src: /opt/zabbix
+    state: present
+
+- name: Ожидание запуска Zabbix
+  uri:
+    url: http://localhost:8080
+    status_code: 200
+  register: result
+  until: result.status == 200
+  retries: 30
+  delay: 5

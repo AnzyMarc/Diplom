@@ -1,0 +1,28 @@
+
+---
+- name: Создание директории для Zabbix Agent
+  file:
+    path: /opt/zabbix-agent
+    state: directory
+    mode: '0755'
+
+- name: Копирование docker-compose для Zabbix Agent
+  template:
+    src: docker-compose.yml.j2
+    dest: /opt/zabbix-agent/docker-compose.yml
+
+- name: Предварительная загрузка образа Zabbix Agent
+  docker_image:
+    name: zabbix/zabbix-agent:alpine-6.0-latest
+    source: pull
+    force_source: yes
+    state: present
+  retries: 3
+  delay: 10
+  register: image_pull
+  until: image_pull is success
+
+- name: Запуск Zabbix Agent через Docker Compose
+  docker_compose:
+    project_src: /opt/zabbix-agent
+    state: present

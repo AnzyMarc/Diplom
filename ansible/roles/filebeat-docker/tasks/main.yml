@@ -1,0 +1,9 @@
+- name: Запуск Filebeat
+  docker_container:
+    name: filebeat
+    image: docker.elastic.co/beats/filebeat:7.17.0
+    user: root
+    volumes:
+      - /opt/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /opt/nginx/logs:/var/log/nginx:ro
+    restart_policy: always
